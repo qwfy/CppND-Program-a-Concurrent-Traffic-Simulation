@@ -85,13 +85,16 @@ void Intersection::addVehicleToQueue(std::shared_ptr<Vehicle> vehicle)
     ftrVehicleAllowedToEnter.wait();
     lck.lock();
     std::cout << "Intersection #" << _id << ": Vehicle #" << vehicle->getID() << " is granted entry." << std::endl;
-    
+    lck.unlock();
+
     // FP.6b : use the methods TrafficLight::getCurrentPhase and TrafficLight::waitForGreen to block the execution until the traffic light turns green.
     if (_trafficLight.getCurrentPhase() == TrafficLightPhase::green) {
       // do nothing
     } else {
       _trafficLight.waitForGreen();
     }
+    lck.lock();
+    std::cout << "Intersection #" << _id << ": Traffic light is green" << std::endl;
     lck.unlock();
 }
 
