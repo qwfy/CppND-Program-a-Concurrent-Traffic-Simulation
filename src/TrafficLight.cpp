@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <chrono>
 #include "TrafficLight.h"
 
 /* Implementation of class "MessageQueue" */
@@ -42,7 +43,10 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 
 void TrafficLight::simulate()
 {
-    // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called. To do this, use the thread queue in the base class. 
+    // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread
+    // when the public method „simulate“ is called. To do this, use the thread queue in the base class.
+    std::thread t([this]() {this->cycleThroughPhases();});
+    threads.emplace_back(std::move(t));
 }
 
 // virtual function which is executed in a thread
@@ -51,5 +55,37 @@ void TrafficLight::cycleThroughPhases()
     // FP.2a : Implement the function with an infinite loop that measures the time between two loop cycles 
     // and toggles the current phase of the traffic light between red and green and sends an update method 
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
-    // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
+    // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles.
+
+    std::random_device rd;
+    std::uniform_real_distribution<double> dist(4.0, 6.0);
+
+    auto start = std::chrono::system_clock::now();
+    double wait_time = dist(rd);
+    while (true) {
+      std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
+      if (diff.count() >= wait_time) {
+        switch (_currentPhase) {
+        case TrafficLightPhase::green:
+          _currentPhase = TrafficLightPhase::red;
+          break;
+
+        case TrafficLightPhase::red:
+          _currentPhase = TrafficLightPhase::green;
+          break;
+
+        default:
+          // impossible
+          throw "bad value for _currentPhase";
+          break;
+        }
+        start = std::chrono::system_clock::now();
+        wait_time = dist(rd);
+
+        // TODO send an update method?
+      } else {
+        // do nothing
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 }
